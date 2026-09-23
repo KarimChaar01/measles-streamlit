@@ -12,8 +12,10 @@ reported by Lebanon's Ministry of Public Health (2015-2018, plus January-May 202
   1. Beqaa reported 85% of its 2015-2018 cases in just six months (Feb-Jul 2018).
   2. The outbreak did not end in the summer. It moved to North Lebanon, which reported 75% of national cases in Nov-Dec 2018.
   3. 2025 is back to normal nationally (20 cases in Jan-May), but North Lebanon is above every pre-outbreak year.
-- **Five charts:** full-timeline line chart (window shaded), ranked bar chart, governorate x month
-  heatmap, small multiples of each governorate's curve (timing of peaks), and a 2025 vs. pre-outbreak chart.
+- **Four charts:** full-timeline line chart (window shaded), ranked bar chart, small multiples of each
+  governorate's curve (timing of peaks), and a 2025 vs. pre-outbreak chart.
+- **Context tiles:** WHO/UNICEF measles vaccination coverage for Lebanon (63% second dose in 2015-2018,
+  59% in 2021-2025) against the 95% WHO says is needed to stop outbreaks.
 
 ## The two linked interactions
 1. **Time-window slider** (`st.select_slider`, range of months): sets the period for every chart and KPI.

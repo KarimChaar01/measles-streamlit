@@ -136,8 +136,27 @@ st.markdown(
 )
 st.info(
     "**Big idea:** Lebanon's 2018 measles outbreak was not one event but a wave that moved from Beqaa "
-    "to the North, so tracking only national totals misses where the next cases are coming from.",
+    "to the North, so tracking only national totals misses where the next cases are coming from. "
+    "With vaccination now lower than before 2018, that matters more today.",
     icon=":material/lightbulb:",
+)
+
+# WHO/UNICEF estimates of national immunization coverage (WUENIC) for Lebanon, from the WHO Global
+# Health Observatory API (indicators WHS8_110 = first dose, MCV2 = second dose), retrieved Sep 2026.
+# Kept as constants: context only, the charts use the MOPH case data alone.
+st.markdown("**What's at stake: measles vaccination in Lebanon**")
+v1, v2, v3 = st.columns(3)
+v1.metric("Two-dose coverage WHO says stops outbreaks", "95%", "WHO target", delta_color="off", delta_arrow="off",
+          border=True)
+v2.metric("Lebanon, second dose, 2015-2018", "63%", "first dose: 82%", delta_color="off", delta_arrow="off",
+          border=True)
+v3.metric("Lebanon, second dose, 2021-2025", "59%", "first dose: 67%", delta_color="off", delta_arrow="off",
+          border=True)
+st.caption(
+    "Sources: WHO/UNICEF national immunization coverage estimates (WUENIC) via the "
+    "[WHO Global Health Observatory](https://www.who.int/data/gho); 95% target from "
+    "[WHO, Nov 2025](https://www.who.int/news/item/28-11-2025-measles-deaths-down-88--since-2000--but-cases-surge). "
+    "National figures only; there is no official coverage by governorate."
 )
 
 with st.expander("About the data and how to read it"):
@@ -149,8 +168,9 @@ with st.expander("About the data and how to read it"):
 - **Missing:** South Governorate has **no 2016 data**. It is shown blank, not as zero.
 - **Cleaning:** dropped one non-data row, parsed place and month from the URLs, and merged
   "North Governorate" (2025) into "North Lebanon Governorate".
-- **Why it matters:** measles is extremely contagious, so a small gap in vaccination can become an
-  outbreak within weeks.
+- **Why it matters:** one person with measles can infect up to 18 others
+  ([WHO fact sheet](https://www.who.int/news-room/fact-sheets/detail/measles)), so a gap in
+  vaccination can become an outbreak within weeks.
         """
     )
 
@@ -348,7 +368,7 @@ if focus == "South":
 st.plotly_chart(fig_line, width="stretch", config=CHART_CONFIG)
 
 # ------------------------------------------------------------------
-# Chart 2 (where) + Chart 3 (where x when) for the selected window
+# Chart 2 (where, in the window) + chart 3 (small multiples: did everyone peak at the same time?)
 # ------------------------------------------------------------------
 left, right = st.columns([2, 3], gap="large")
 
@@ -371,7 +391,7 @@ with left:
         if win_national else "No cases reported in this window"
     )
     fig_bar.update_layout(
-        **BASE_LAYOUT, height=380, title=bar_title, showlegend=False,
+        **BASE_LAYOUT, height=520, title=bar_title, showlegend=False,
         xaxis=dict(title="Reported cases in window", showgrid=False, showticklabels=False, zeroline=False,
                    range=[0, max(bars.max(skipna=True) or 1, 1) * 1.35]),
         yaxis=dict(showgrid=False),
@@ -379,65 +399,40 @@ with left:
     st.plotly_chart(fig_bar, width="stretch", config=CHART_CONFIG)
 
 with right:
-    heat = win.T.reindex(GOVS)
-    xlabels = [d.strftime("%b %y") for d in heat.columns]
-    hover_txt = heat.map(lambda v: "no data" if pd.isna(v) else f"{v:.0f} cases")
-    fig_heat = go.Figure(go.Heatmap(
-        z=heat.values, x=xlabels, y=heat.index, colorscale="Reds", zmin=0,
-        xgap=1, ygap=2, customdata=hover_txt.values,
-        colorbar=dict(title="Cases", thickness=12),
-        hovertemplate="%{y} · %{x}<br><b>%{customdata}</b><extra></extra>",
-    ))
-    if focus != ALL:
-        row = GOVS.index(focus)
-        fig_heat.add_shape(type="rect", xref="x", yref="y", x0=-0.5, x1=len(xlabels) - 0.5,
-                           y0=row - 0.5, y1=row + 0.5, line=dict(color=INK, width=2))
-    step = max(1, len(xlabels) // 12)
-    fig_heat.update_layout(
-        **BASE_LAYOUT, height=380,
-        title="Cases by governorate and month (blank = no data)",
-        xaxis=dict(tickangle=-45, tickmode="array", tickvals=xlabels[::step], showgrid=False),
-        yaxis=dict(autorange="reversed", showgrid=False),
+    # overall 2015-2018 peak per governorate: fixed, so the timing story does not shift with the window
+    peaks = {g: (grid[g].idxmax(), grid[g].max()) for g in GOVS}
+    SM_MIN_SCALE = 10  # own scale per panel, but never below 0-10, so 2-3 case blips stay small
+    fig_sm = make_subplots(
+        rows=3, cols=2, shared_xaxes=True, vertical_spacing=0.13, horizontal_spacing=0.09,
+        subplot_titles=[f"<b>{g}</b> · peak {fmt_month(peaks[g][0])} ({peaks[g][1]:.0f})" for g in GOVS],
     )
-    st.plotly_chart(fig_heat, width="stretch", config=CHART_CONFIG)
+    for i, g in enumerate(GOVS):
+        r, c = divmod(i, 2)
+        selected = focus == g
+        dimmed = focus not in (ALL, g)
+        fig_sm.add_trace(go.Scatter(
+            x=grid.index, y=grid[g], mode="lines", connectgaps=False, opacity=0.45 if dimmed else 1,
+            line=dict(color=GOV_COLORS[g], width=3.5 if selected else 2),
+            hovertemplate="%{x|%b %Y}: <b>%{y:.0f}</b><extra>" + g + "</extra>",
+        ), row=r + 1, col=c + 1)
+        fig_sm.add_trace(go.Scatter(
+            x=[peaks[g][0]], y=[peaks[g][1]], mode="markers", opacity=0.45 if dimmed else 1,
+            marker=dict(size=9, color=GOV_COLORS[g], line=dict(color="white", width=2)), hoverinfo="skip",
+        ), row=r + 1, col=c + 1)
+        fig_sm.update_yaxes(range=[0, max(peaks[g][1], SM_MIN_SCALE) * 1.15], row=r + 1, col=c + 1)
+        if not is_full_window:
+            fig_sm.add_vrect(x0=start - pd.Timedelta(days=14), x1=end + pd.Timedelta(days=14),
+                             fillcolor="#F2D4D8", opacity=0.45, line_width=0, layer="below",
+                             row=r + 1, col=c + 1)
+    fig_sm.update_annotations(font=dict(size=12, color=INK))
+    fig_sm.update_yaxes(gridcolor="#EEEEEE", nticks=4)
+    fig_sm.update_xaxes(showgrid=False, dtick="M12", tickformat="%Y")
+    fig_sm.update_layout(
+        **BASE_LAYOUT, height=520, showlegend=False,
+        title="Did every governorate peak at the same time?",
+    )
+    st.plotly_chart(fig_sm, width="stretch", config=CHART_CONFIG)
 
-# ------------------------------------------------------------------
-# Chart 4: small multiples, one panel per governorate on its own scale,
-# so the *timing* of each outbreak can be compared regardless of its size
-# ------------------------------------------------------------------
-# overall 2015-2018 peak per governorate: fixed, so the timing story does not shift with the window
-peaks = {g: (grid[g].idxmax(), grid[g].max()) for g in GOVS}
-SM_MIN_SCALE = 10  # own scale per panel, but never below 0-10, so 2-3 case blips stay small
-fig_sm = make_subplots(
-    rows=2, cols=3, shared_xaxes=True, vertical_spacing=0.16, horizontal_spacing=0.05,
-    subplot_titles=[f"<b>{g}</b> · peak {fmt_month(peaks[g][0])} ({peaks[g][1]:.0f})" for g in GOVS],
-)
-for i, g in enumerate(GOVS):
-    r, c = divmod(i, 3)
-    selected = focus == g
-    dimmed = focus not in (ALL, g)
-    fig_sm.add_trace(go.Scatter(
-        x=grid.index, y=grid[g], mode="lines", connectgaps=False, opacity=0.45 if dimmed else 1,
-        line=dict(color=GOV_COLORS[g], width=3.5 if selected else 2),
-        hovertemplate="%{x|%b %Y}: <b>%{y:.0f}</b><extra>" + g + "</extra>",
-    ), row=r + 1, col=c + 1)
-    fig_sm.add_trace(go.Scatter(
-        x=[peaks[g][0]], y=[peaks[g][1]], mode="markers", opacity=0.45 if dimmed else 1,
-        marker=dict(size=9, color=GOV_COLORS[g], line=dict(color="white", width=2)), hoverinfo="skip",
-    ), row=r + 1, col=c + 1)
-    fig_sm.update_yaxes(range=[0, max(peaks[g][1], SM_MIN_SCALE) * 1.15], row=r + 1, col=c + 1)
-    if not is_full_window:
-        fig_sm.add_vrect(x0=start - pd.Timedelta(days=14), x1=end + pd.Timedelta(days=14),
-                         fillcolor="#F2D4D8", opacity=0.45, line_width=0, layer="below",
-                         row=r + 1, col=c + 1)
-fig_sm.update_annotations(font=dict(size=13, color=INK))
-fig_sm.update_yaxes(gridcolor="#EEEEEE", nticks=4)
-fig_sm.update_xaxes(showgrid=False, dtick="M12", tickformat="%Y")
-fig_sm.update_layout(
-    **BASE_LAYOUT, height=460, showlegend=False,
-    title="Did every governorate peak at the same time?",
-)
-st.plotly_chart(fig_sm, width="stretch", config=CHART_CONFIG)
 st.caption(
     "Each panel has its own scale (at least 0-10), so compare timing, not height. Dot = 2015-2018 peak. "
     "Beqaa and Mount Lebanon peaked in May 2018, North Lebanon in December."
@@ -469,7 +464,7 @@ with st.expander("Planning: who, what, how"):
 - **What:** the outbreak moved, so surveillance should watch *where* cases are rising, not only
   the national total. Today that place is the North.
 - **How:** monthly MOPH counts by governorate, shown first as three explained insights, then as
-  controls the reader can use to check them.
+  controls the reader can use to check them. WHO/UNICEF vaccination coverage adds national context.
 - **Mechanism:** a self-serve web page is closer to a written document than a live talk. The reader
   is in control, so the detail is there on demand (data notes, number table, CSV download) but
   collapsed by default.
@@ -516,7 +511,7 @@ share into each label, which radio buttons would make crowded.
 
 **Course concept: focusing attention.** Colour is a *preattentive* attribute: the eye sees it before
 reading anything. Only the chosen governorate keeps full colour, everything else turns grey or fades,
-and its heatmap row gets an outline. Chart titles state the takeaway ("North Lebanon had the most
+and its small-multiples panel gets a thicker line. Chart titles state the takeaway ("North Lebanon had the most
 cases in this window") instead of just naming the chart.
 
 **Course concept: reducing clutter.** One focus at a time instead of six competing lines. Numbers
@@ -524,22 +519,24 @@ sit in direct labels, so bars need no axis ticks and there is no legend to decod
 light, the Plotly toolbar is hidden, and method notes sit in collapsed expanders.
         """
     )
-with st.expander("Why these charts (and no pie chart or animation)"):
+with st.expander("Why these charts (and what I dropped)"):
     st.markdown(
         """
 | Chart | Question | From Plotly? |
 |---|---|---|
 | Line chart, full timeline | When, compared with normal years? | Yes |
 | Ranked bar chart | Where, in my window? | Yes |
-| Heatmap | Where and when at once | Yes |
 | Small multiples | Did everyone peak at the same time? | New |
 | 2025 range-and-dot | Is it coming back? | New |
 
-The first four respond to both controls. The 2025 chart is fixed because it covers a different period.
+The first three respond to both controls. The 2025 chart is fixed because it covers a different period.
 
 **Small multiples.** The same idea Scheiner used in 1611 to show sunspots changing over time, later
 named by Tufte (lecture 1). Each panel has its own scale, so the reader compares *timing*, not size.
 The scale never goes below 0-10, so a 2-case blip in Nabatieh does not look like an outbreak.
+
+**No heatmap (clutter).** In my Plotly work it showed where and when, but Beqaa's dark cells
+washed out everyone else. The small multiples answer the same question more clearly.
 
 **No pie chart (clutter).** The bar labels already show each share (e.g. "516 (67%)"), and
 bar lengths are easier to compare than slice angles.
