@@ -1,6 +1,6 @@
 # Measles in Lebanon: 2018 Outbreak Explorer
 
-**Live app:** https://REPLACE-WITH-YOUR-APP.streamlit.app
+**Live app:** https://karimchaar01-measles-streamlit-app-alq8ye.streamlit.app/
 
 An interactive Streamlit page built on my MSBA 325 Plotly assignment. It uses monthly measles cases
 reported by Lebanon's Ministry of Public Health (2015–2018, plus January–May 2025) and asks:
