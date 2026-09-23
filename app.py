@@ -134,6 +134,11 @@ st.markdown(
     "reported by the Ministry of Public Health. Pick a time window, then a governorate, to see "
     "where and when the outbreak hit."
 )
+st.info(
+    "**Big idea:** Lebanon's 2018 measles outbreak was not one event but a wave that moved from Beqaa "
+    "to the North, so tracking only national totals misses where the next cases are coming from.",
+    icon=":material/lightbulb:",
+)
 
 with st.expander("About the data and how to read it"):
     st.markdown(
@@ -456,20 +461,42 @@ st.divider()
 # Design justifications
 # ------------------------------------------------------------------
 st.subheader("Design notes")
+st.caption("Concepts from MSBA 325 and Knaflic's Storytelling with Data.")
+with st.expander("Planning: who, what, how"):
+    st.markdown(
+        """
+- **Who:** public-health analysts and students who know Lebanon but not this dataset.
+- **What:** the outbreak moved, so surveillance should watch *where* cases are rising, not only
+  the national total. Today that place is the North.
+- **How:** monthly MOPH counts by governorate, shown first as three explained insights, then as
+  controls the reader can use to check them.
+- **Mechanism:** a self-serve web page is closer to a written document than a live talk. The reader
+  is in control, so the detail is there on demand (data notes, number table, CSV download) but
+  collapsed by default.
+- **Honest story:** I kept the evidence that does not fit neatly: South's missing 2016, the fact
+  that counts are not population-adjusted, and that 2025 is quiet overall.
+        """
+    )
 with st.expander("Why a time-window slider?"):
     st.markdown(
         """
 **User question.** When did the outbreak happen, and how big was it in a given period?
-For example, the spring 2018 surge vs. the smaller rise at the end of the year.
+For example, the spring 2018 surge vs. the second rise at the end of the year.
 
 **Why this widget.** A range `select_slider` snaps to the 48 months in the data: one control, two
-handles, no invalid ranges. I considered two `date_input` calendars, but they allow single days on
-monthly data and a start after the end. A year dropdown was too coarse: the northern wave happens
-*inside* 2018, so it would hide insight 2.
+handles, no invalid ranges. I rejected two `date_input` calendars (they allow single days on monthly
+data and a start after the end) and a year dropdown (too coarse: the northern wave happens *inside*
+2018, so it would hide insight 2).
 
-**Course concept: context.** The top chart always shows the full 2015-2018 timeline and only
-*shades* the chosen window, so zooming in never hides the calm years that make 2018 stand out.
-The first KPI also compares the window with a year before, so each number has a baseline.
+**Course concept: the importance of context.** A number means little without a baseline:
+- the top line chart always shows the **full 2015-2018 timeline** and only *shades* the chosen
+  window, so zooming in never hides the calm years that make 2018 stand out;
+- the first KPI compares the window with **the same months a year before**;
+- the dropdown gives each governorate's **share** of the window, not just a count.
+
+**Course concept: exploratory vs. explanatory.** The insight cards are the explanatory part: they
+tell the reader what I found. The slider is the exploratory part: the reader can check my claims on
+any window. The "Show me" buttons join the two by setting the slider to the window behind each insight.
         """
     )
 with st.expander("Why a ranked governorate dropdown, and how is it linked?"):
@@ -480,16 +507,21 @@ compare with the national one?
 
 **How it is linked.** Every time the slider moves, the dropdown is **re-ranked and relabelled**
 with each governorate's cases and share in that window. Beqaa leads in spring 2018, North Lebanon
-in Nov-Dec, and South in 2016 reads "no data", not 0. The slider sets the scope and the dropdown
-drills into it. The "Show me" buttons set both at once.
+in Nov-Dec, and South in 2016 reads "no data". The slider sets the scope and the dropdown drills
+into it.
 
-**Why this widget.** A `multiselect` invites plotting all six lines at once (spaghetti). Clicking
-on bars is hard to discover and not keyboard-friendly. A `selectbox` also fits the count and share
-into each label, which radio buttons would make crowded.
+**Why this widget.** I rejected a `multiselect` (it invites plotting all six lines at once) and
+clicking on bars (hard to discover, not keyboard-friendly). A `selectbox` also fits the count and
+share into each label, which radio buttons would make crowded.
 
-**Course concept: focus attention, reduce clutter.** Only the chosen governorate keeps its colour.
-Everything else turns grey, and its heatmap row gets an outline. Colour works as a *preattentive*
-cue: the eye lands on the focus first, while the grey context stays available.
+**Course concept: focusing attention.** Colour is a *preattentive* attribute: the eye sees it before
+reading anything. Only the chosen governorate keeps full colour, everything else turns grey or fades,
+and its heatmap row gets an outline. Chart titles state the takeaway ("North Lebanon had the most
+cases in this window") instead of just naming the chart.
+
+**Course concept: reducing clutter.** One focus at a time instead of six competing lines. Numbers
+sit in direct labels, so bars need no axis ticks and there is no legend to decode. Gridlines are
+light, the Plotly toolbar is hidden, and method notes sit in collapsed expanders.
         """
     )
 with st.expander("Why these charts (and no pie chart or animation)"):
@@ -505,15 +537,15 @@ with st.expander("Why these charts (and no pie chart or animation)"):
 
 The first four respond to both controls. The 2025 chart is fixed because it covers a different period.
 
-**No pie chart.** The bar labels already show each share (e.g. "516 (67%)"), and bar lengths are
-easier to compare than slice angles.
+**Small multiples.** The same idea Scheiner used in 1611 to show sunspots changing over time, later
+named by Tufte (lecture 1). Each panel has its own scale, so the reader compares *timing*, not size.
+The scale never goes below 0-10, so a 2-case blip in Nabatieh does not look like an outbreak.
 
-**No animation.** The slider does the same job at the reader's pace, and the small multiples show
-the whole sequence at once.
+**No pie chart (clutter).** The bar labels already show each share (e.g. "516 (67%)"), and
+bar lengths are easier to compare than slice angles.
 
-**Separate scales in the small multiples.** On a shared axis, Beqaa's 151-case peak would flatten
-the North's wave. Separate scales leave only *timing* to compare, and the panel titles keep the
-real peak numbers visible. Each scale is at least 0-10, so a 2-case blip in Nabatieh does not look like an outbreak.
+**No animation (attention).** The slider does the same job at the reader's pace, and the small
+multiples show the whole sequence at once instead of asking the reader to remember frames.
         """
     )
 
