@@ -46,6 +46,8 @@ BASE_LAYOUT = dict(
     hoverlabel=dict(bgcolor="white", font_size=13),
 )
 
+CHART_CONFIG = {"displayModeBar": False}  # hide the Plotly toolbar for a cleaner page
+
 # the raw export uses dbpedia-style names; the 2025 rows also renamed the North
 NAME_MAP = {
     "Beqaa_Governorate": "Beqaa",
@@ -162,7 +164,7 @@ nat_nd = national.loc["2018-11":"2018-12"].sum()
 
 with i1:
     with st.container(border=True, height=INSIGHT_BOX_HEIGHT):
-        st.markdown("**1 · Six months, one governorate**")
+        st.markdown("**1. Six months, one governorate**")
         st.markdown(
             f"**{beqaa_spring / beqaa_total:.0%}** of Beqaa's four-year total came in Feb-Jul 2018: "
             f"**{beqaa_spring / spring_nat:.0%}** of all cases in Lebanon in those months."
@@ -171,7 +173,7 @@ with i1:
                   width="stretch")
 with i2:
     with st.container(border=True, height=INSIGHT_BOX_HEIGHT):
-        st.markdown("**2 · It didn't end. It moved north.**")
+        st.markdown("**2. It didn't end. It moved north.**")
         st.markdown(
             f"Cases fell to {national['2018-09-01']:.0f} in Sep 2018. Then North Lebanon surged: "
             f"**{north_nd:.0f} cases in Nov-Dec**, **{north_nd / nat_nd:.0%}** of the national total."
@@ -184,7 +186,7 @@ with i3:
         jan_may = df[df["date"].dt.month <= 5].assign(year=lambda d: d["date"].dt.year)
         jm = jan_may.pivot_table(index="governorate", columns="year", values="cases", aggfunc="sum").reindex(GOVS)
         pre = jm[[2015, 2016, 2017]]
-        st.markdown("**3 · 2025 is quiet, except in the North**")
+        st.markdown("**3. 2025 is quiet, except in the North**")
         st.markdown(
             f"Jan-May 2025 had **{jm[2025].sum():.0f} cases**, a normal level. But North Lebanon's "
             f"**{jm.loc['North Lebanon', 2025]:.0f}** beats every pre-outbreak year "
@@ -216,7 +218,7 @@ with st.expander("Insight 3 chart: 2025 vs. pre-outbreak years"):
         legend=dict(orientation="h", yanchor="bottom", y=1.0, x=1, xanchor="right"),
     )
     fig_25.update_traces(cliponaxis=False)
-    st.plotly_chart(fig_25, width="stretch")
+    st.plotly_chart(fig_25, width="stretch", config=CHART_CONFIG)
     st.caption("Grey = 2015-2017 range. 2018 left out (off the scale). Small numbers: an early signal, not an outbreak.")
 
 st.divider()
@@ -229,7 +231,7 @@ c1, c2 = st.columns([3, 2], gap="large")
 
 with c1:
     start, end = st.select_slider(
-        "① Time window",
+        "Time window",
         options=MONTHS,
         format_func=lambda m: fmt_month(pd.Timestamp(m)),
         value=PRESETS["full"][0],  # a tuple here is what makes it a two-handle range slider
@@ -259,7 +261,7 @@ def focus_label(option: str) -> str:
 
 with c2:
     focus = st.selectbox(
-        f"② Governorate, ranked by cases in {fmt_window(start, end)}",
+        f"Governorate, ranked by cases in {fmt_window(start, end)}",
         options=[ALL] + ranked,
         format_func=focus_label,
         key="focus",
@@ -338,7 +340,7 @@ fig_line.update_layout(
 if focus == "South":
     fig_line.add_annotation(x="2016-07-01", y=0, yshift=12, showarrow=False,
                             text="no South data in 2016", font=dict(color=MUTED, size=11))
-st.plotly_chart(fig_line, width="stretch")
+st.plotly_chart(fig_line, width="stretch", config=CHART_CONFIG)
 
 # ------------------------------------------------------------------
 # Chart 2 (where) + Chart 3 (where x when) for the selected window
@@ -369,7 +371,7 @@ with left:
                    range=[0, max(bars.max(skipna=True) or 1, 1) * 1.35]),
         yaxis=dict(showgrid=False),
     )
-    st.plotly_chart(fig_bar, width="stretch")
+    st.plotly_chart(fig_bar, width="stretch", config=CHART_CONFIG)
 
 with right:
     heat = win.T.reindex(GOVS)
@@ -392,46 +394,48 @@ with right:
         xaxis=dict(tickangle=-45, tickmode="array", tickvals=xlabels[::step], showgrid=False),
         yaxis=dict(autorange="reversed", showgrid=False),
     )
-    st.plotly_chart(fig_heat, width="stretch")
+    st.plotly_chart(fig_heat, width="stretch", config=CHART_CONFIG)
 
 # ------------------------------------------------------------------
 # Chart 4: small multiples, one panel per governorate on its own scale,
 # so the *timing* of each outbreak can be compared regardless of its size
 # ------------------------------------------------------------------
-peaks = {g: (win[g].idxmax(), win[g].max()) for g in GOVS if win[g].notna().any() and win[g].max() > 0}
+# overall 2015-2018 peak per governorate: fixed, so the timing story does not shift with the window
+peaks = {g: (grid[g].idxmax(), grid[g].max()) for g in GOVS}
+SM_MIN_SCALE = 10  # own scale per panel, but never below 0-10, so 2-3 case blips stay small
 fig_sm = make_subplots(
     rows=2, cols=3, shared_xaxes=True, vertical_spacing=0.16, horizontal_spacing=0.05,
-    subplot_titles=[
-        f"<b>{g}</b> · peak {fmt_month(peaks[g][0])} ({peaks[g][1]:.0f})" if g in peaks else f"<b>{g}</b> · no cases"
-        for g in GOVS
-    ],
+    subplot_titles=[f"<b>{g}</b> · peak {fmt_month(peaks[g][0])} ({peaks[g][1]:.0f})" for g in GOVS],
 )
 for i, g in enumerate(GOVS):
     r, c = divmod(i, 3)
-    color = GOV_COLORS[g] if focus in (ALL, g) else CONTEXT_GREY
+    selected = focus == g
+    dimmed = focus not in (ALL, g)
     fig_sm.add_trace(go.Scatter(
-        x=grid.index, y=grid[g], mode="lines", line=dict(color=color, width=2), connectgaps=False,
+        x=grid.index, y=grid[g], mode="lines", connectgaps=False, opacity=0.45 if dimmed else 1,
+        line=dict(color=GOV_COLORS[g], width=3.5 if selected else 2),
         hovertemplate="%{x|%b %Y}: <b>%{y:.0f}</b><extra>" + g + "</extra>",
     ), row=r + 1, col=c + 1)
-    if g in peaks:
-        fig_sm.add_trace(go.Scatter(
-            x=[peaks[g][0]], y=[peaks[g][1]], mode="markers",
-            marker=dict(size=9, color=color, line=dict(color="white", width=2)), hoverinfo="skip",
-        ), row=r + 1, col=c + 1)
+    fig_sm.add_trace(go.Scatter(
+        x=[peaks[g][0]], y=[peaks[g][1]], mode="markers", opacity=0.45 if dimmed else 1,
+        marker=dict(size=9, color=GOV_COLORS[g], line=dict(color="white", width=2)), hoverinfo="skip",
+    ), row=r + 1, col=c + 1)
+    fig_sm.update_yaxes(range=[0, max(peaks[g][1], SM_MIN_SCALE) * 1.15], row=r + 1, col=c + 1)
     if not is_full_window:
         fig_sm.add_vrect(x0=start - pd.Timedelta(days=14), x1=end + pd.Timedelta(days=14),
                          fillcolor="#F2D4D8", opacity=0.45, line_width=0, layer="below",
                          row=r + 1, col=c + 1)
 fig_sm.update_annotations(font=dict(size=13, color=INK))
-fig_sm.update_yaxes(rangemode="tozero", gridcolor="#EEEEEE", nticks=4)
+fig_sm.update_yaxes(gridcolor="#EEEEEE", nticks=4)
 fig_sm.update_xaxes(showgrid=False, dtick="M12", tickformat="%Y")
 fig_sm.update_layout(
     **BASE_LAYOUT, height=460, showlegend=False,
-    title="Did every governorate peak at the same time? (each panel on its own scale)",
+    title="Did every governorate peak at the same time?",
 )
-st.plotly_chart(fig_sm, width="stretch")
+st.plotly_chart(fig_sm, width="stretch", config=CHART_CONFIG)
 st.caption(
-    "Dot = peak month in your window. Over 2015-2018, Beqaa and Mount Lebanon peaked in May 2018, North Lebanon in December."
+    "Each panel has its own scale (at least 0-10), so compare timing, not height. Dot = 2015-2018 peak. "
+    "Beqaa and Mount Lebanon peaked in May 2018, North Lebanon in December."
 )
 
 with st.expander("See the numbers behind the charts"):
@@ -452,7 +456,7 @@ st.divider()
 # Design justifications
 # ------------------------------------------------------------------
 st.subheader("Design notes")
-with st.expander("① Why a time-window slider?"):
+with st.expander("Why a time-window slider?"):
     st.markdown(
         """
 **User question.** When did the outbreak happen, and how big was it in a given period?
@@ -468,7 +472,7 @@ monthly data and a start after the end. A year dropdown was too coarse: the nort
 The first KPI also compares the window with a year before, so each number has a baseline.
         """
     )
-with st.expander("② Why a ranked governorate dropdown, and how is it linked?"):
+with st.expander("Why a ranked governorate dropdown, and how is it linked?"):
     st.markdown(
         """
 **User question.** Which governorate drove the cases in this period, and how does its curve
@@ -488,7 +492,7 @@ Everything else turns grey, and its heatmap row gets an outline. Colour works as
 cue: the eye lands on the focus first, while the grey context stays available.
         """
     )
-with st.expander("③ Why these charts (and no pie chart or animation)"):
+with st.expander("Why these charts (and no pie chart or animation)"):
     st.markdown(
         """
 | Chart | Question | From Plotly? |
@@ -509,7 +513,7 @@ the whole sequence at once.
 
 **Separate scales in the small multiples.** On a shared axis, Beqaa's 151-case peak would flatten
 the North's wave. Separate scales leave only *timing* to compare, and the panel titles keep the
-real peak numbers visible.
+real peak numbers visible. Each scale is at least 0-10, so a 2-case blip in Nabatieh does not look like an outbreak.
         """
     )
 
