@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import streamlit as st
 
 DATA_PATH = Path(__file__).parent / "data" / "measles_lebanon_moph.csv"
@@ -35,6 +36,15 @@ CONTEXT_GREY = "#C9CCD1"
 INK = "#2B2B2B"
 MUTED = "#6B6F76"
 ALL = "All of Lebanon"
+
+# shared look for every Plotly figure on the page
+BASE_LAYOUT = dict(
+    template="plotly_white",
+    font=dict(family="Arial", size=13, color=INK),
+    title_font=dict(size=16),
+    margin=dict(l=10, r=10, t=60, b=10),
+    hoverlabel=dict(bgcolor="white", font_size=13),
+)
 
 # the raw export uses dbpedia-style names; the 2025 rows also renamed the North
 NAME_MAP = {
@@ -92,7 +102,7 @@ def fmt_month(ts: pd.Timestamp) -> str:
 
 
 def fmt_window(start: pd.Timestamp, end: pd.Timestamp) -> str:
-    return fmt_month(start) if start == end else f"{fmt_month(start)} – {fmt_month(end)}"
+    return fmt_month(start) if start == end else f"{fmt_month(start)} to {fmt_month(end)}"
 
 
 # ------------------------------------------------------------------
@@ -118,35 +128,30 @@ def apply_preset(name: str) -> None:
 # ------------------------------------------------------------------
 st.title("Measles in Lebanon: where and when did the 2018 outbreak hit?")
 st.markdown(
-    "Monthly measles cases reported by Lebanon's **Ministry of Public Health** for its six "
-    "governorates, **January 2015 – December 2018** (plus a January–May 2025 snapshot). "
-    "In my Plotly assignment I showed *that* 2018 was an outbreak year and that Beqaa carried "
-    "most of it. This page lets you **zoom into any stretch of months and drill down into one "
-    "governorate** to see how the outbreak actually moved."
+    "Monthly measles cases in Lebanon's six governorates, **2015-2018** plus **Jan-May 2025**, "
+    "reported by the Ministry of Public Health. Pick a time window, then a governorate, to see "
+    "where and when the outbreak hit."
 )
 
 with st.expander("About the data and how to read it"):
     st.markdown(
         """
-- **Source:** MOPH Epidemiological Surveillance Unit, published as linked data on the
-  [AUB Linked Data Cube Portal](https://linked.aub.edu.lb:8502/). 306 governorate-month observations.
-- **What a number means:** *reported* cases, not total infections. Counts are **not adjusted for
-  population**, so a large governorate will tend to report more cases. Compare shapes and timing
-  more than raw size.
-- **Missing data:** South Governorate has **no records for 2016**. Those months show as blank
-  cells, not zeros, and the national total for 2016 covers only five governorates.
-- **Cleaning:** one non-observation row from the RDF export was dropped; governorate and month
-  were parsed from the linked-data URLs; "North Governorate" (2025 rows) was merged with
-  "North Lebanon Governorate".
-- **Why measles matters:** it is one of the most contagious diseases known, so a small drop in
-  vaccination coverage can turn a handful of cases into an outbreak within weeks.
+- **Source:** MOPH Epidemiological Surveillance Unit, via the
+  [AUB Linked Data Cube Portal](https://linked.aub.edu.lb:8502/). 306 governorate-months.
+- **Counts** are *reported* cases and are **not population-adjusted**. Bigger governorates report more.
+- **Missing:** South Governorate has **no 2016 data**. It is shown blank, not as zero.
+- **Cleaning:** dropped one non-data row, parsed place and month from the URLs, and merged
+  "North Governorate" (2025) into "North Lebanon Governorate".
+- **Why it matters:** measles is extremely contagious, so a small gap in vaccination can become an
+  outbreak within weeks.
         """
     )
 
 # ------------------------------------------------------------------
 # Insights (author-driven) with "show me" buttons that set the controls
 # ------------------------------------------------------------------
-st.subheader("Three things the data shows")
+st.subheader("Key insights")
+INSIGHT_BOX_HEIGHT = 175  # same height for all three cards so the buttons line up
 i1, i2, i3 = st.columns(3)
 
 beqaa_spring = grid.loc["2018-02":"2018-07", "Beqaa"].sum()
@@ -156,37 +161,63 @@ north_nd = grid.loc["2018-11":"2018-12", "North Lebanon"].sum()
 nat_nd = national.loc["2018-11":"2018-12"].sum()
 
 with i1:
-    with st.container(border=True):
-        st.markdown("**1 · A six-month outbreak, concentrated in one place**")
+    with st.container(border=True, height=INSIGHT_BOX_HEIGHT):
+        st.markdown("**1 · Six months, one governorate**")
         st.markdown(
-            f"Beqaa reported **{beqaa_spring:.0f} of its {beqaa_total:.0f} cases** from 2015 to 2018 "
-            f"(**{beqaa_spring / beqaa_total:.0%}**) between February and July 2018, which was "
-            f"**{beqaa_spring / spring_nat:.0%}** of every case in Lebanon during those months."
+            f"**{beqaa_spring / beqaa_total:.0%}** of Beqaa's four-year total came in Feb-Jul 2018: "
+            f"**{beqaa_spring / spring_nat:.0%}** of all cases in Lebanon in those months."
         )
-        st.button("Show me the spring 2018 outbreak", on_click=apply_preset, args=("spring",),
+        st.button("Show me", on_click=apply_preset, args=("spring",), key="btn_spring",
                   width="stretch")
 with i2:
-    with st.container(border=True):
-        st.markdown("**2 · It didn't end in summer. It moved north.**")
+    with st.container(border=True, height=INSIGHT_BOX_HEIGHT):
+        st.markdown("**2 · It didn't end. It moved north.**")
         st.markdown(
-            f"National cases fell to **{national['2018-09-01']:.0f}** in September 2018, then rose "
-            f"again. North Lebanon reported **{north_nd:.0f} cases in November–December**, "
-            f"**{north_nd / nat_nd:.0%}** of the national total. A yearly chart hides this second wave."
+            f"Cases fell to {national['2018-09-01']:.0f} in Sep 2018. Then North Lebanon surged: "
+            f"**{north_nd:.0f} cases in Nov-Dec**, **{north_nd / nat_nd:.0%}** of the national total."
         )
-        st.button("Show me the northern wave", on_click=apply_preset, args=("north",),
+        st.button("Show me", on_click=apply_preset, args=("north",), key="btn_north",
                   width="stretch")
 with i3:
-    with st.container(border=True):
-        cases_25 = df[df["date"].dt.year == 2025].groupby("governorate")["cases"].sum()
-        st.markdown("**3 · The North is still the one to watch**")
+    with st.container(border=True, height=INSIGHT_BOX_HEIGHT):
+        # 2025 only covers Jan-May, so compare it with Jan-May of the pre-outbreak years
+        jan_may = df[df["date"].dt.month <= 5].assign(year=lambda d: d["date"].dt.year)
+        jm = jan_may.pivot_table(index="governorate", columns="year", values="cases", aggfunc="sum").reindex(GOVS)
+        pre = jm[[2015, 2016, 2017]]
+        st.markdown("**3 · 2025 is quiet, except in the North**")
         st.markdown(
-            f"In the January–May 2025 snapshot, Lebanon reported **{cases_25.sum()} cases**. "
-            f"North Lebanon had the most (**{cases_25.get('North Lebanon', 0)}**), even though Beqaa "
-            "was the centre in 2018. The numbers are small, but the North is the last place "
-            "where cases were still rising at the end of the outbreak."
+            f"Jan-May 2025 had **{jm[2025].sum():.0f} cases**, a normal level. But North Lebanon's "
+            f"**{jm.loc['North Lebanon', 2025]:.0f}** beats every pre-outbreak year "
+            f"({', '.join(f'{v:.0f}' for v in pre.loc['North Lebanon'])})."
         )
-        st.button("Reset to the full 2015–2018 view", on_click=apply_preset, args=("full",),
+        st.button("Reset view", on_click=apply_preset, args=("full",), key="btn_reset",
                   width="stretch")
+
+with st.expander("Insight 3 chart: 2025 vs. pre-outbreak years"):
+    order = pre.max(axis=1).sort_values().index
+    fig_25 = go.Figure()
+    fig_25.add_trace(go.Bar(  # grey bar spanning the 2015-2017 min..max for Jan-May
+        y=order, x=pre.loc[order].max(axis=1) - pre.loc[order].min(axis=1), base=pre.loc[order].min(axis=1),
+        orientation="h", marker=dict(color="#E3E5E8", cornerradius=4), width=0.45,
+        name="Jan-May range, 2015-2017",
+        customdata=pre.loc[order].apply(lambda r: ", ".join("n/a" if pd.isna(v) else f"{v:.0f}" for v in r), axis=1),
+        hovertemplate="%{y}<br>2015, 2016, 2017: %{customdata}<extra></extra>",
+    ))
+    fig_25.add_trace(go.Scatter(
+        y=order, x=jm.loc[order, 2025], mode="markers+text", name="Jan-May 2025",
+        marker=dict(size=14, color=[GOV_COLORS[g] for g in order], line=dict(color="white", width=2)),
+        text=[f"{v:.0f}" for v in jm.loc[order, 2025]], textposition="middle right",
+        hovertemplate="%{y}<br>Jan-May 2025: <b>%{x:.0f}</b> cases<extra></extra>",
+    ))
+    fig_25.update_layout(
+        **BASE_LAYOUT, height=320,
+        title="North Lebanon is the only governorate above its pre-outbreak range in 2025",
+        xaxis=dict(title="Reported cases, Jan-May", gridcolor="#EEEEEE", range=[-1.5, pre.max().max() + 3]),
+        legend=dict(orientation="h", yanchor="bottom", y=1.0, x=1, xanchor="right"),
+    )
+    fig_25.update_traces(cliponaxis=False)
+    st.plotly_chart(fig_25, width="stretch")
+    st.caption("Grey = 2015-2017 range. 2018 left out (off the scale). Small numbers: an early signal, not an outbreak.")
 
 st.divider()
 
@@ -198,7 +229,7 @@ c1, c2 = st.columns([3, 2], gap="large")
 
 with c1:
     start, end = st.select_slider(
-        "① Time window: drag either end to zoom into a period",
+        "① Time window",
         options=MONTHS,
         format_func=lambda m: fmt_month(pd.Timestamp(m)),
         value=PRESETS["full"][0],  # a tuple here is what makes it a two-handle range slider
@@ -228,7 +259,7 @@ def focus_label(option: str) -> str:
 
 with c2:
     focus = st.selectbox(
-        f"② Focus on a governorate (ranked by cases in {fmt_window(start, end)})",
+        f"② Governorate, ranked by cases in {fmt_window(start, end)}",
         options=[ALL] + ranked,
         format_func=focus_label,
         key="focus",
@@ -253,34 +284,26 @@ k1, k2, k3, k4 = st.columns(4)
 k1.metric(
     f"Reported cases, {focus}",
     "no data" if pd.isna(focus_cases) else f"{focus_cases:,.0f}",
-    delta=None if prev_cases is None or pd.isna(focus_cases) else f"{focus_cases - prev_cases:+,.0f} vs. same months a year earlier",
+    delta=None if prev_cases is None or pd.isna(focus_cases) else f"{focus_cases - prev_cases:+,.0f} vs. a year before",
     delta_color="inverse",
 )
 if win_series.notna().any():
-    k2.metric("Worst month in window", fmt_month(win_series.idxmax()), f"{win_series.max():.0f} cases",
+    k2.metric("Peak month", fmt_month(win_series.idxmax()), f"{win_series.max():.0f} cases",
               delta_color="off", delta_arrow="off")
 else:
-    k2.metric("Worst month in window", "–")
+    k2.metric("Peak month", "n/a")
 if focus == ALL:
     top = ranked[0]
     k3.metric("Largest contributor", top,
               f"{gov_totals[top] / win_national:.0%} of cases" if win_national else None, delta_color="off", delta_arrow="off")
 else:
-    k3.metric(f"{focus}'s share of national cases",
-              "–" if pd.isna(focus_cases) or not win_national else f"{focus_cases / win_national:.0%}")
-k4.metric("Governorates reporting ≥1 case", f"{int((gov_totals > 0).sum())} of 6")
+    k3.metric("Share of national cases",
+              "n/a" if pd.isna(focus_cases) or not win_national else f"{focus_cases / win_national:.0%}")
+k4.metric("Governorates with cases", f"{int((gov_totals > 0).sum())} of 6")
 
 # ------------------------------------------------------------------
 # Chart 1: full timeline for context, selected window shaded, focus highlighted
 # ------------------------------------------------------------------
-BASE_LAYOUT = dict(
-    template="plotly_white",
-    font=dict(family="Arial", size=13, color=INK),
-    title_font=dict(size=16),
-    margin=dict(l=10, r=10, t=60, b=10),
-    hoverlabel=dict(bgcolor="white", font_size=13),
-)
-
 fig_line = go.Figure()
 is_full_window = (start, end) == (grid.index[0], grid.index[-1])
 if not is_full_window:  # shading everything would just tint the whole chart
@@ -306,7 +329,7 @@ if win_series.notna().any():
 focus_name = "Lebanon" if focus == ALL else focus
 fig_line.update_layout(
     **BASE_LAYOUT, height=340,
-    title=f"{focus_name}, monthly cases 2015–2018" + ("" if is_full_window else f" · shaded area = your window ({fmt_window(start, end)})"),
+    title=f"{focus_name}, monthly cases 2015-2018" + ("" if is_full_window else " (shaded: your window)"),
     legend=dict(orientation="h", yanchor="bottom", y=1.0, x=1, xanchor="right"),
     yaxis=dict(title="Reported cases", gridcolor="#EEEEEE", rangemode="tozero"),
     xaxis=dict(showgrid=False),
@@ -365,17 +388,63 @@ with right:
     step = max(1, len(xlabels) // 12)
     fig_heat.update_layout(
         **BASE_LAYOUT, height=380,
-        title="When and where: each cell is one governorate-month (blank = not reported)",
+        title="Cases by governorate and month (blank = no data)",
         xaxis=dict(tickangle=-45, tickmode="array", tickvals=xlabels[::step], showgrid=False),
         yaxis=dict(autorange="reversed", showgrid=False),
     )
     st.plotly_chart(fig_heat, width="stretch")
+
+# ------------------------------------------------------------------
+# Chart 4: small multiples, one panel per governorate on its own scale,
+# so the *timing* of each outbreak can be compared regardless of its size
+# ------------------------------------------------------------------
+peaks = {g: (win[g].idxmax(), win[g].max()) for g in GOVS if win[g].notna().any() and win[g].max() > 0}
+fig_sm = make_subplots(
+    rows=2, cols=3, shared_xaxes=True, vertical_spacing=0.16, horizontal_spacing=0.05,
+    subplot_titles=[
+        f"<b>{g}</b> · peak {fmt_month(peaks[g][0])} ({peaks[g][1]:.0f})" if g in peaks else f"<b>{g}</b> · no cases"
+        for g in GOVS
+    ],
+)
+for i, g in enumerate(GOVS):
+    r, c = divmod(i, 3)
+    color = GOV_COLORS[g] if focus in (ALL, g) else CONTEXT_GREY
+    fig_sm.add_trace(go.Scatter(
+        x=grid.index, y=grid[g], mode="lines", line=dict(color=color, width=2), connectgaps=False,
+        hovertemplate="%{x|%b %Y}: <b>%{y:.0f}</b><extra>" + g + "</extra>",
+    ), row=r + 1, col=c + 1)
+    if g in peaks:
+        fig_sm.add_trace(go.Scatter(
+            x=[peaks[g][0]], y=[peaks[g][1]], mode="markers",
+            marker=dict(size=9, color=color, line=dict(color="white", width=2)), hoverinfo="skip",
+        ), row=r + 1, col=c + 1)
+    if not is_full_window:
+        fig_sm.add_vrect(x0=start - pd.Timedelta(days=14), x1=end + pd.Timedelta(days=14),
+                         fillcolor="#F2D4D8", opacity=0.45, line_width=0, layer="below",
+                         row=r + 1, col=c + 1)
+fig_sm.update_annotations(font=dict(size=13, color=INK))
+fig_sm.update_yaxes(rangemode="tozero", gridcolor="#EEEEEE", nticks=4)
+fig_sm.update_xaxes(showgrid=False, dtick="M12", tickformat="%Y")
+fig_sm.update_layout(
+    **BASE_LAYOUT, height=460, showlegend=False,
+    title="Did every governorate peak at the same time? (each panel on its own scale)",
+)
+st.plotly_chart(fig_sm, width="stretch")
+st.caption(
+    "Dot = peak month in your window. Over 2015-2018, Beqaa and Mount Lebanon peaked in May 2018, North Lebanon in December."
+)
 
 with st.expander("See the numbers behind the charts"):
     table = win.copy()
     table.index = table.index.strftime("%b %Y")
     table["All of Lebanon"] = table.sum(axis=1, min_count=1)
     st.dataframe(table.astype("Int64"), width="stretch")
+    st.download_button(
+        f"Download this window as CSV ({fmt_window(start, end)})",
+        data=table.astype("Int64").to_csv(index_label="month").encode("utf-8"),
+        file_name=f"measles_lebanon_{start:%Y-%m}_to_{end:%Y-%m}.csv",
+        mime="text/csv",
+    )
 
 st.divider()
 
@@ -386,47 +455,61 @@ st.subheader("Design notes")
 with st.expander("① Why a time-window slider?"):
     st.markdown(
         """
-**User question.** *"How big was the outbreak during a particular stretch of months, and when did it peak?"*
-For example, a reader can compare the spring 2018 surge with the smaller rise at the end of that year.
+**User question.** When did the outbreak happen, and how big was it in a given period?
+For example, the spring 2018 surge vs. the smaller rise at the end of the year.
 
-**Why this widget.** I used a range `select_slider` that snaps to the 48 months in the data. I also
-considered two `date_input` calendars and a year dropdown. The calendars let you pick individual days
-even though the data is monthly, they take two separate interactions, and they allow a start date after
-the end date. A year dropdown was too coarse: the northern second wave happens *inside* 2018, so a
-yearly filter would hide the second insight. The slider has one control with two handles and no
-invalid states.
+**Why this widget.** A range `select_slider` snaps to the 48 months in the data: one control, two
+handles, no invalid ranges. I considered two `date_input` calendars, but they allow single days on
+monthly data and a start after the end. A year dropdown was too coarse: the northern wave happens
+*inside* 2018, so it would hide insight 2.
 
-**Course concept: overview first, then zoom, while keeping context.** The top chart always shows the
-full 2015–2018 timeline, and the chosen window is only *shaded* on it. The reader can zoom into a few
-months without losing sight of how they compare with the calm years before. The bar chart and heatmap
-below then show only that window. The KPI row also compares the window with the same months a year
-earlier, so every number has a baseline.
+**Course concept: context.** The top chart always shows the full 2015-2018 timeline and only
+*shades* the chosen window, so zooming in never hides the calm years that make 2018 stand out.
+The first KPI also compares the window with a year before, so each number has a baseline.
         """
     )
-with st.expander("② Why a ranked governorate dropdown, and how is it linked to the slider?"):
+with st.expander("② Why a ranked governorate dropdown, and how is it linked?"):
     st.markdown(
         """
-**User question.** *"Which governorate drove the cases in this period, and how does its curve
-compare with the national one?"*
+**User question.** Which governorate drove the cases in this period, and how does its curve
+compare with the national one?
 
-**How it is linked.** The dropdown's options are **re-ranked and relabelled every time the slider
-moves**. Each option shows that governorate's case count and share *for the current window*, so the
-list itself is a ranking. Beqaa is on top for spring 2018, and North Lebanon moves to the top when
-you slide to November–December. A governorate with no records in the window (South in 2016) is
-labelled "no data" instead of "0". The slider sets the scope, and the dropdown drills into it. The
-result (the highlighted line, bar and heatmap row, and the "share of national" KPI) depends on both.
+**How it is linked.** Every time the slider moves, the dropdown is **re-ranked and relabelled**
+with each governorate's cases and share in that window. Beqaa leads in spring 2018, North Lebanon
+in Nov-Dec, and South in 2016 reads "no data", not 0. The slider sets the scope and the dropdown
+drills into it. The "Show me" buttons set both at once.
 
-**Why this widget.** I considered a `multiselect` and clicking on the bars. A multiselect invites
-people to plot all six governorates as coloured lines, which becomes a spaghetti chart where no
-line stands out. Clicking a bar is hard to discover and is not keyboard-friendly. A single-choice
-`selectbox` also has room for the count and share inside each label, which radio buttons would make
-crowded.
+**Why this widget.** A `multiselect` invites plotting all six lines at once (spaghetti). Clicking
+on bars is hard to discover and not keyboard-friendly. A `selectbox` also fits the count and share
+into each label, which radio buttons would make crowded.
 
-**Course concept: focus attention and reduce clutter.** Once a governorate is selected, it is the
-only element drawn in colour (its colour from my Plotly assignment). Every other line and bar
-becomes light grey, and its row in the heatmap gets an outline. Colour is used as a *preattentive*
-cue: the eye goes to the focus first, and the grey context is still there for comparison without
-competing for attention.
+**Course concept: focus attention, reduce clutter.** Only the chosen governorate keeps its colour.
+Everything else turns grey, and its heatmap row gets an outline. Colour works as a *preattentive*
+cue: the eye lands on the focus first, while the grey context stays available.
+        """
+    )
+with st.expander("③ Why these charts (and no pie chart or animation)"):
+    st.markdown(
+        """
+| Chart | Question | From Plotly? |
+|---|---|---|
+| Line chart, full timeline | When, compared with normal years? | Yes |
+| Ranked bar chart | Where, in my window? | Yes |
+| Heatmap | Where and when at once | Yes |
+| Small multiples | Did everyone peak at the same time? | New |
+| 2025 range-and-dot | Is it coming back? | New |
+
+The first four respond to both controls. The 2025 chart is fixed because it covers a different period.
+
+**No pie chart.** The bar labels already show each share (e.g. "516 (67%)"), and bar lengths are
+easier to compare than slice angles.
+
+**No animation.** The slider does the same job at the reader's pace, and the small multiples show
+the whole sequence at once.
+
+**Separate scales in the small multiples.** On a shared axis, Beqaa's 151-case peak would flatten
+the North's wave. Separate scales leave only *timing* to compare, and the panel titles keep the
+real peak numbers visible.
         """
     )
 

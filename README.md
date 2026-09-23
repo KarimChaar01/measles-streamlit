@@ -3,17 +3,17 @@
 **Live app:** https://karimchaar01-measles-streamlit-app-alq8ye.streamlit.app/
 
 An interactive Streamlit page built on my MSBA 325 Plotly assignment. It uses monthly measles cases
-reported by Lebanon's Ministry of Public Health (2015–2018, plus January–May 2025) and asks:
+reported by Lebanon's Ministry of Public Health (2015-2018, plus January-May 2025) and asks:
 **where and when did the 2018 outbreak hit, and how did it move?**
 
 ## What the page shows
 - **Context:** source, what the counts mean, missing data (South Governorate has no 2016 records).
 - **Three insights:**
-  1. Beqaa reported 85% of its 2015–2018 cases in just six months (Feb–Jul 2018).
-  2. The outbreak did not end in the summer. It moved to North Lebanon, which reported 75% of national cases in Nov–Dec 2018.
-  3. North Lebanon also reports the most cases in the 2025 snapshot.
-- **Three linked charts:** full-timeline line chart (window shaded), ranked bar chart, and
-  governorate × month heatmap.
+  1. Beqaa reported 85% of its 2015-2018 cases in just six months (Feb-Jul 2018).
+  2. The outbreak did not end in the summer. It moved to North Lebanon, which reported 75% of national cases in Nov-Dec 2018.
+  3. 2025 is back to normal nationally (20 cases in Jan-May), but North Lebanon is above every pre-outbreak year.
+- **Five charts:** full-timeline line chart (window shaded), ranked bar chart, governorate x month
+  heatmap, small multiples of each governorate's curve (timing of peaks), and a 2025 vs. pre-outbreak chart.
 
 ## The two linked interactions
 1. **Time-window slider** (`st.select_slider`, range of months): sets the period for every chart and KPI.
