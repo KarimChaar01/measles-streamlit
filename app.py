@@ -40,7 +40,7 @@ ALL = "All of Lebanon"
 # shared look for every Plotly figure on the page
 BASE_LAYOUT = dict(
     template="plotly_white",
-    font=dict(family="Arial", size=13, color=INK),
+    font=dict(family="Calibri, Carlito, Arial, sans-serif", size=13, color=INK),
     title_font=dict(size=16),
     margin=dict(l=10, r=10, t=60, b=10),
     hoverlabel=dict(bgcolor="white", font_size=13),
@@ -134,11 +134,9 @@ st.markdown(
     "reported by the Ministry of Public Health. Pick a time window, then a governorate, to see "
     "where and when the outbreak hit."
 )
-st.info(
-    "**Big idea:** Lebanon's 2018 measles outbreak was not one event but a wave that moved from Beqaa "
-    "to the North, so tracking only national totals misses where the next cases are coming from. "
-    "With vaccination now lower than before 2018, that matters more today.",
-    icon=":material/lightbulb:",
+st.markdown(
+    "**Big idea:** The 2018 outbreak started in Beqaa and ended in the North. The national total "
+    "hides that shift, and vaccination is lower today than it was in 2018."
 )
 
 # WHO/UNICEF estimates of national immunization coverage (WUENIC) for Lebanon, from the WHO Global
