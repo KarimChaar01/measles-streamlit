@@ -129,33 +129,24 @@ def apply_preset(name: str) -> None:
 # Header + context
 # ------------------------------------------------------------------
 st.title("Measles in Lebanon: where and when did the 2018 outbreak hit?")
+st.caption("Monthly reported measles cases by governorate · Lebanon Ministry of Public Health · 2015-2018 and Jan-May 2025")
+
 st.markdown(
-    "Monthly measles cases in Lebanon's six governorates, **2015-2018** plus **Jan-May 2025**, "
-    "reported by the Ministry of Public Health. Pick a time window, then a governorate, to see "
-    "where and when the outbreak hit."
-)
-st.markdown(
-    "**Big idea:** The 2018 outbreak started in Beqaa and ended in the North. The national total "
-    "hides that shift, and vaccination is lower today than it was in 2018."
+    f'<p style="font-size:0.8rem; letter-spacing:0.06em; color:{MUTED}; margin:0.6rem 0 0.1rem 0;">BIG IDEA</p>'
+    f'<p style="font-size:1.35rem; line-height:1.4; color:{INK}; margin:0 0 0.8rem 0;">'
+    "The 2018 outbreak started in Beqaa and ended in the North, and fewer children are vaccinated today "
+    "than in 2018.</p>",
+    unsafe_allow_html=True,
 )
 
 # WHO/UNICEF estimates of national immunization coverage (WUENIC) for Lebanon, from the WHO Global
-# Health Observatory API (indicators WHS8_110 = first dose, MCV2 = second dose), retrieved Sep 2026.
-# Kept as constants: context only, the charts use the MOPH case data alone.
-st.markdown("**What's at stake: measles vaccination in Lebanon**")
+# Health Observatory API (WHS8_110 = first dose, MCV2 = second dose), retrieved Sep 2026.
+# Context only: the charts use the MOPH case data alone.
 v1, v2, v3 = st.columns(3)
-v1.metric("Two-dose coverage WHO says stops outbreaks", "95%", "WHO target", delta_color="off", delta_arrow="off",
-          border=True)
-v2.metric("Lebanon, second dose, 2015-2018", "63%", "first dose: 82%", delta_color="off", delta_arrow="off",
-          border=True)
-v3.metric("Lebanon, second dose, 2021-2025", "59%", "first dose: 67%", delta_color="off", delta_arrow="off",
-          border=True)
-st.caption(
-    "Sources: WHO/UNICEF national immunization coverage estimates (WUENIC) via the "
-    "[WHO Global Health Observatory](https://www.who.int/data/gho); 95% target from "
-    "[WHO, Nov 2025](https://www.who.int/news/item/28-11-2025-measles-deaths-down-88--since-2000--but-cases-surge). "
-    "National figures only; there is no official coverage by governorate."
-)
+v1.metric("Second-dose vaccination, 2018", "63%")
+v2.metric("Second-dose vaccination, 2025", "59%")
+v3.metric("Needed to stop outbreaks (WHO)", "95%")
+st.caption("Vaccination: WHO/UNICEF estimates for Lebanon. Sources in \"About the data\".")
 
 with st.expander("About the data and how to read it"):
     st.markdown(
@@ -169,6 +160,11 @@ with st.expander("About the data and how to read it"):
 - **Why it matters:** one person with measles can infect up to 18 others
   ([WHO fact sheet](https://www.who.int/news-room/fact-sheets/detail/measles)), so a gap in
   vaccination can become an outbreak within weeks.
+- **Vaccination (context, not charted):** WHO/UNICEF estimates of national coverage (WUENIC) from the
+  [WHO Global Health Observatory](https://www.who.int/data/gho). Second dose: 63% in 2015-2018, 59% in
+  2021-2025. First dose: 82%, then 67%. WHO says at least 95% two-dose coverage is needed to stop
+  outbreaks ([WHO, Nov 2025](https://www.who.int/news/item/28-11-2025-measles-deaths-down-88--since-2000--but-cases-surge)).
+  National figures only; there is no official coverage by governorate.
         """
     )
 
