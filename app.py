@@ -134,17 +134,22 @@ def apply_preset(name: str) -> None:
 st.markdown(
     """
 <style>
-.hero {background:#9E1328; color:#FFFFFF; border-radius:14px; padding:1.8rem 2.2rem 1.6rem 2.2rem;
-       margin:0.2rem 0 1.4rem 0;}
-.hero .kicker {font-size:0.85rem; opacity:0.8; margin-bottom:0.5rem;}
-.hero .title {font-size:2.3rem; font-weight:700; line-height:1.15; margin:0 0 1rem 0;}
+.hero {color:#2B2B2B; padding:0.4rem 0 0.2rem 0; margin:0 0 1.2rem 0;}
+.hero .kicker {font-size:0.85rem; color:#6B6F76; margin-bottom:0.5rem;}
+.hero .title {font-size:2.6rem; font-weight:700; line-height:1.15; margin:0 0 1rem 0;}
 .hero .idea {font-size:1.25rem; line-height:1.45; max-width:62rem; margin:0 0 1.4rem 0;}
-.hero .idea b {font-size:0.8rem; letter-spacing:0.08em; opacity:0.8; margin-right:0.5rem;}
-.hero .stats {display:flex; flex-wrap:wrap; gap:0; border-top:1px solid rgba(255,255,255,0.3); padding-top:1rem;}
+.hero .idea b {font-size:0.8rem; letter-spacing:0.08em; color:#6B6F76; margin-right:0.5rem;}
+.hero .stats {display:flex; flex-wrap:wrap; gap:0; border-top:1px solid #E0DCD5; padding-top:1rem;}
 .hero .stat {flex:1 1 12rem; padding-right:1.5rem;}
-.hero .stat .num {font-size:2.2rem; font-weight:700; line-height:1.1;}
-.hero .stat .lbl {font-size:0.9rem; opacity:0.85;}
-.hero .src {font-size:0.75rem; opacity:0.7; margin-top:0.9rem;}
+.hero .stat .num {font-size:3rem; font-weight:700; line-height:1.05;}
+.hero .stat .lbl {font-size:0.95rem; color:#6B6F76;}
+.hero .src {font-size:0.75rem; color:#6B6F76; margin-top:0.9rem;}
+.hero .idea b {color:#B3122A;}
+.hero .stat .num.gap {color:#B3122A;}
+.hero .stat .num.target {color:#2F6B5A;}
+h3 {border-left:4px solid #B3122A; padding-left:0.6rem !important;}
+.st-key-card_beqaa {border-top:4px solid #B3122A !important;}
+.st-key-card_north_a, .st-key-card_north_b {border-top:4px solid #5C8CA8 !important;}
 [data-testid="stPlotlyChart"] {background:#FFFFFF; border:1px solid #E6E2DC; border-radius:12px; padding:0 0.8rem;}
 [data-testid="stVerticalBlockBorderWrapper"] {background:#FFFFFF;}
 [data-testid="stExpander"] details {background:#FFFFFF;}
@@ -164,9 +169,9 @@ st.markdown(
   <p class="idea"><b>BIG IDEA</b>The 2018 outbreak started in Beqaa and ended in the North, and fewer children are
   vaccinated today than in 2018.</p>
   <div class="stats">
-    <div class="stat"><div class="num">63%</div><div class="lbl">second-dose vaccination, 2018</div></div>
-    <div class="stat"><div class="num">59%</div><div class="lbl">second-dose vaccination, 2025</div></div>
-    <div class="stat"><div class="num">95%</div><div class="lbl">needed to stop outbreaks (WHO)</div></div>
+    <div class="stat"><div class="num gap">63%</div><div class="lbl">second-dose vaccination, 2018</div></div>
+    <div class="stat"><div class="num gap">59%</div><div class="lbl">second-dose vaccination, 2025</div></div>
+    <div class="stat"><div class="num target">95%</div><div class="lbl">needed to stop outbreaks (WHO)</div></div>
   </div>
   <div class="src">Vaccination: WHO/UNICEF estimates for Lebanon. Sources in "About the data" below.</div>
 </div>
@@ -208,7 +213,7 @@ north_nd = grid.loc["2018-11":"2018-12", "North Lebanon"].sum()
 nat_nd = national.loc["2018-11":"2018-12"].sum()
 
 with i1:
-    with st.container(border=True, height=INSIGHT_BOX_HEIGHT):
+    with st.container(border=True, height=INSIGHT_BOX_HEIGHT, key="card_beqaa"):
         st.markdown("**1. Six months, one governorate**")
         st.markdown(
             f"**{beqaa_spring / beqaa_total:.0%}** of Beqaa's four-year total came in Feb-Jul 2018: "
@@ -217,7 +222,7 @@ with i1:
         st.button("Show me", on_click=apply_preset, args=("spring",), key="btn_spring",
                   width="stretch")
 with i2:
-    with st.container(border=True, height=INSIGHT_BOX_HEIGHT):
+    with st.container(border=True, height=INSIGHT_BOX_HEIGHT, key="card_north_a"):
         st.markdown("**2. It didn't end. It moved north.**")
         st.markdown(
             f"Cases fell to {national['2018-09-01']:.0f} in Sep 2018. Then North Lebanon surged: "
@@ -226,7 +231,7 @@ with i2:
         st.button("Show me", on_click=apply_preset, args=("north",), key="btn_north",
                   width="stretch")
 with i3:
-    with st.container(border=True, height=INSIGHT_BOX_HEIGHT):
+    with st.container(border=True, height=INSIGHT_BOX_HEIGHT, key="card_north_b"):
         # 2025 only covers Jan-May, so compare it with Jan-May of the pre-outbreak years
         jan_may = df[df["date"].dt.month <= 5].assign(year=lambda d: d["date"].dt.year)
         jm = jan_may.pivot_table(index="governorate", columns="year", values="cases", aggfunc="sum").reindex(GOVS)
