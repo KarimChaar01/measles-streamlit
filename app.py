@@ -40,9 +40,11 @@ ALL = "All of Lebanon"
 # shared look for every Plotly figure on the page
 BASE_LAYOUT = dict(
     template="plotly_white",
+    paper_bgcolor="rgba(0,0,0,0)",  # the white chart card comes from the page CSS
+    plot_bgcolor="rgba(0,0,0,0)",
     font=dict(family="Calibri, Carlito, Arial, sans-serif", size=13, color=INK),
     title_font=dict(size=16),
-    margin=dict(l=10, r=10, t=60, b=10),
+    margin=dict(l=10, r=10, t=60, b=30),
     hoverlabel=dict(bgcolor="white", font_size=13),
 )
 
@@ -128,25 +130,49 @@ def apply_preset(name: str) -> None:
 # ------------------------------------------------------------------
 # Header + context
 # ------------------------------------------------------------------
-st.title("Measles in Lebanon: where and when did the 2018 outbreak hit?")
-st.caption("Monthly reported measles cases by governorate · Lebanon Ministry of Public Health · 2015-2018 and Jan-May 2025")
-
+# page styling: warm grey page, white cards for charts, insight boxes and expanders
 st.markdown(
-    f'<p style="font-size:0.8rem; letter-spacing:0.06em; color:{MUTED}; margin:0.6rem 0 0.1rem 0;">BIG IDEA</p>'
-    f'<p style="font-size:1.35rem; line-height:1.4; color:{INK}; margin:0 0 0.8rem 0;">'
-    "The 2018 outbreak started in Beqaa and ended in the North, and fewer children are vaccinated today "
-    "than in 2018.</p>",
+    """
+<style>
+.hero {background:#9E1328; color:#FFFFFF; border-radius:14px; padding:1.8rem 2.2rem 1.6rem 2.2rem;
+       margin:0.2rem 0 1.4rem 0;}
+.hero .kicker {font-size:0.85rem; opacity:0.8; margin-bottom:0.5rem;}
+.hero .title {font-size:2.3rem; font-weight:700; line-height:1.15; margin:0 0 1rem 0;}
+.hero .idea {font-size:1.25rem; line-height:1.45; max-width:62rem; margin:0 0 1.4rem 0;}
+.hero .idea b {font-size:0.8rem; letter-spacing:0.08em; opacity:0.8; margin-right:0.5rem;}
+.hero .stats {display:flex; flex-wrap:wrap; gap:0; border-top:1px solid rgba(255,255,255,0.3); padding-top:1rem;}
+.hero .stat {flex:1 1 12rem; padding-right:1.5rem;}
+.hero .stat .num {font-size:2.2rem; font-weight:700; line-height:1.1;}
+.hero .stat .lbl {font-size:0.9rem; opacity:0.85;}
+.hero .src {font-size:0.75rem; opacity:0.7; margin-top:0.9rem;}
+[data-testid="stPlotlyChart"] {background:#FFFFFF; border:1px solid #E6E2DC; border-radius:12px; padding:0 0.8rem;}
+[data-testid="stVerticalBlockBorderWrapper"] {background:#FFFFFF;}
+[data-testid="stExpander"] details {background:#FFFFFF;}
+</style>
+""",
     unsafe_allow_html=True,
 )
 
-# WHO/UNICEF estimates of national immunization coverage (WUENIC) for Lebanon, from the WHO Global
-# Health Observatory API (WHS8_110 = first dose, MCV2 = second dose), retrieved Sep 2026.
+# Header band. Vaccination numbers are WHO/UNICEF estimates of national immunization coverage (WUENIC)
+# for Lebanon, from the WHO Global Health Observatory API (MCV2 = second dose), retrieved Sep 2026.
 # Context only: the charts use the MOPH case data alone.
-v1, v2, v3 = st.columns(3)
-v1.metric("Second-dose vaccination, 2018", "63%")
-v2.metric("Second-dose vaccination, 2025", "59%")
-v3.metric("Needed to stop outbreaks (WHO)", "95%")
-st.caption("Vaccination: WHO/UNICEF estimates for Lebanon. Sources in \"About the data\".")
+st.markdown(
+    """
+<div class="hero">
+  <div class="kicker">Monthly reported measles cases by governorate · Lebanon Ministry of Public Health · 2015-2018 and Jan-May 2025</div>
+  <div class="title">Measles in Lebanon: where and when did the 2018 outbreak hit?</div>
+  <p class="idea"><b>BIG IDEA</b>The 2018 outbreak started in Beqaa and ended in the North, and fewer children are
+  vaccinated today than in 2018.</p>
+  <div class="stats">
+    <div class="stat"><div class="num">63%</div><div class="lbl">second-dose vaccination, 2018</div></div>
+    <div class="stat"><div class="num">59%</div><div class="lbl">second-dose vaccination, 2025</div></div>
+    <div class="stat"><div class="num">95%</div><div class="lbl">needed to stop outbreaks (WHO)</div></div>
+  </div>
+  <div class="src">Vaccination: WHO/UNICEF estimates for Lebanon. Sources in "About the data" below.</div>
+</div>
+""",
+    unsafe_allow_html=True,
+)
 
 with st.expander("About the data and how to read it"):
     st.markdown(
