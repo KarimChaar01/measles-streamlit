@@ -135,7 +135,6 @@ st.markdown(
     """
 <style>
 .hero {color:#2B2B2B; padding:0.4rem 0 0.2rem 0; margin:0 0 1.2rem 0;}
-.hero .kicker {font-size:0.85rem; color:#6B6F76; margin-bottom:0.5rem;}
 .hero .title {font-size:2.6rem; font-weight:700; line-height:1.15; margin:0 0 1rem 0;}
 .hero .idea {font-size:1.25rem; line-height:1.45; max-width:62rem; margin:0 0 1.4rem 0;}
 .hero .stats {display:flex; flex-wrap:wrap; gap:0; border-top:1px solid #E0DCD5; padding-top:1rem;}
@@ -159,7 +158,6 @@ st.markdown(
 st.markdown(
     """
 <div class="hero">
-  <div class="kicker">Monthly reported measles cases by governorate · Lebanon Ministry of Public Health · 2015-2018 and Jan-May 2025</div>
   <div class="title">Measles in Lebanon: where and when did the 2018 outbreak hit?</div>
   <p class="idea">The 2018 outbreak started in Beqaa and ended in the North, and fewer children are
   vaccinated today than in 2018.</p>
@@ -178,7 +176,8 @@ with st.expander("About the data and how to read it"):
     st.markdown(
         """
 - **Source:** MOPH Epidemiological Surveillance Unit, via the
-  [AUB Linked Data Cube Portal](https://linked.aub.edu.lb:8502/). 306 governorate-months.
+  [AUB Linked Data Cube Portal](https://linked.aub.edu.lb:8502/). Monthly reported cases for 6 governorates,
+  2015-2018 and Jan-May 2025 (306 governorate-months).
 - **Counts** are *reported* cases and are **not population-adjusted**. Bigger governorates report more.
 - **Missing:** South Governorate has **no 2016 data**. It is shown blank, not as zero.
 - **Cleaning:** dropped one non-data row, parsed place and month from the URLs, and merged
