@@ -138,16 +138,13 @@ st.markdown(
 .hero .kicker {font-size:0.85rem; color:#6B6F76; margin-bottom:0.5rem;}
 .hero .title {font-size:2.6rem; font-weight:700; line-height:1.15; margin:0 0 1rem 0;}
 .hero .idea {font-size:1.25rem; line-height:1.45; max-width:62rem; margin:0 0 1.4rem 0;}
-.hero .idea b {font-size:0.8rem; letter-spacing:0.08em; color:#6B6F76; margin-right:0.5rem;}
 .hero .stats {display:flex; flex-wrap:wrap; gap:0; border-top:1px solid #E0DCD5; padding-top:1rem;}
 .hero .stat {flex:1 1 12rem; padding-right:1.5rem;}
 .hero .stat .num {font-size:3rem; font-weight:700; line-height:1.05;}
 .hero .stat .lbl {font-size:0.95rem; color:#6B6F76;}
 .hero .src {font-size:0.75rem; color:#6B6F76; margin-top:0.9rem;}
-.hero .idea b {color:#B3122A;}
 .hero .stat .num.gap {color:#B3122A;}
 .hero .stat .num.target {color:#2F6B5A;}
-h3 {border-left:4px solid #B3122A; padding-left:0.6rem !important;}
 .st-key-card_beqaa {border-top:4px solid #B3122A !important;}
 .st-key-card_north_a, .st-key-card_north_b {border-top:4px solid #5C8CA8 !important;}
 [data-testid="stPlotlyChart"] {background:#FFFFFF; border:1px solid #E6E2DC; border-radius:12px; padding:0 0.8rem;}
@@ -166,7 +163,7 @@ st.markdown(
 <div class="hero">
   <div class="kicker">Monthly reported measles cases by governorate · Lebanon Ministry of Public Health · 2015-2018 and Jan-May 2025</div>
   <div class="title">Measles in Lebanon: where and when did the 2018 outbreak hit?</div>
-  <p class="idea"><b>BIG IDEA</b>The 2018 outbreak started in Beqaa and ended in the North, and fewer children are
+  <p class="idea">The 2018 outbreak started in Beqaa and ended in the North, and fewer children are
   vaccinated today than in 2018.</p>
   <div class="stats">
     <div class="stat"><div class="num gap">63%</div><div class="lbl">second-dose vaccination, 2018</div></div>
@@ -276,7 +273,7 @@ st.divider()
 # ------------------------------------------------------------------
 # Controls (reader-driven). Control 2 depends on control 1.
 # ------------------------------------------------------------------
-st.subheader("Explore it yourself")
+st.subheader("Explore the data")
 c1, c2 = st.columns([3, 2], gap="large")
 
 with c1:
