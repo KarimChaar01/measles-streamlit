@@ -145,10 +145,8 @@ st.markdown(
 .hero .src {font-size:0.75rem; color:#6B6F76; margin-top:0.9rem;}
 .hero .stat .num.gap {color:#B3122A;}
 .hero .stat .num.target {color:#2F6B5A;}
-.st-key-card_beqaa {border-top:4px solid #B3122A !important;}
-.st-key-card_north_a, .st-key-card_north_b {border-top:4px solid #5C8CA8 !important;}
 [data-testid="stPlotlyChart"] {background:#FFFFFF; border:1px solid #E6E2DC; border-radius:12px; padding:0 0.8rem;}
-[data-testid="stVerticalBlockBorderWrapper"] {background:#FFFFFF;}
+[data-testid="stVerticalBlockBorderWrapper"], .st-key-card_beqaa, .st-key-card_north_a, .st-key-card_north_b {background:#FFFFFF;}
 [data-testid="stExpander"] details {background:#FFFFFF;}
 </style>
 """,
@@ -200,7 +198,17 @@ with st.expander("About the data and how to read it"):
 # Insights (author-driven) with "show me" buttons that set the controls
 # ------------------------------------------------------------------
 st.subheader("Key insights")
-INSIGHT_BOX_HEIGHT = 175  # same height for all three cards so the buttons line up
+INSIGHT_BOX_HEIGHT = 215  # same height for all three cards so the buttons line up
+
+
+def card_tag(governorate: str) -> None:
+    """Small coloured label naming the governorate an insight is about (same colour as in the charts)."""
+    st.markdown(
+        f'<span style="color:{GOV_COLORS[governorate]}; font-size:0.78rem; font-weight:700; '
+        f'letter-spacing:0.06em;">● {governorate.upper()}</span>',
+        unsafe_allow_html=True,
+    )
+
 i1, i2, i3 = st.columns(3)
 
 beqaa_spring = grid.loc["2018-02":"2018-07", "Beqaa"].sum()
@@ -211,36 +219,36 @@ nat_nd = national.loc["2018-11":"2018-12"].sum()
 
 with i1:
     with st.container(border=True, height=INSIGHT_BOX_HEIGHT, key="card_beqaa"):
+        card_tag("Beqaa")
         st.markdown("**1. Six months, one governorate**")
         st.markdown(
             f"**{beqaa_spring / beqaa_total:.0%}** of Beqaa's four-year total came in Feb-Jul 2018: "
             f"**{beqaa_spring / spring_nat:.0%}** of all cases in Lebanon in those months."
         )
-        st.button("Show me", on_click=apply_preset, args=("spring",), key="btn_spring",
-                  width="stretch")
+        st.button("Show me →", on_click=apply_preset, args=("spring",), key="btn_spring")
 with i2:
     with st.container(border=True, height=INSIGHT_BOX_HEIGHT, key="card_north_a"):
+        card_tag("North Lebanon")
         st.markdown("**2. It didn't end. It moved north.**")
         st.markdown(
             f"Cases fell to {national['2018-09-01']:.0f} in Sep 2018. Then North Lebanon surged: "
             f"**{north_nd:.0f} cases in Nov-Dec**, **{north_nd / nat_nd:.0%}** of the national total."
         )
-        st.button("Show me", on_click=apply_preset, args=("north",), key="btn_north",
-                  width="stretch")
+        st.button("Show me →", on_click=apply_preset, args=("north",), key="btn_north")
 with i3:
     with st.container(border=True, height=INSIGHT_BOX_HEIGHT, key="card_north_b"):
         # 2025 only covers Jan-May, so compare it with Jan-May of the pre-outbreak years
         jan_may = df[df["date"].dt.month <= 5].assign(year=lambda d: d["date"].dt.year)
         jm = jan_may.pivot_table(index="governorate", columns="year", values="cases", aggfunc="sum").reindex(GOVS)
         pre = jm[[2015, 2016, 2017]]
+        card_tag("North Lebanon")
         st.markdown("**3. 2025 is quiet, except in the North**")
         st.markdown(
             f"Jan-May 2025 had **{jm[2025].sum():.0f} cases**, a normal level. But North Lebanon's "
             f"**{jm.loc['North Lebanon', 2025]:.0f}** beats every pre-outbreak year "
             f"({', '.join(f'{v:.0f}' for v in pre.loc['North Lebanon'])})."
         )
-        st.button("Reset view", on_click=apply_preset, args=("full",), key="btn_reset",
-                  width="stretch")
+        st.button("Reset view", on_click=apply_preset, args=("full",), key="btn_reset")
 
 with st.expander("Insight 3 chart: 2025 vs. pre-outbreak years"):
     order = pre.max(axis=1).sort_values().index
