@@ -127,6 +127,10 @@ def apply_preset(name: str) -> None:
     st.session_state["focus"] = focus
 
 
+def toggle_2025_chart() -> None:
+    st.session_state["show_2025"] = not st.session_state.get("show_2025", False)
+
+
 # ------------------------------------------------------------------
 # Header + context
 # ------------------------------------------------------------------
@@ -141,7 +145,6 @@ st.markdown(
 .hero .stat {flex:1 1 12rem; padding-right:1.5rem;}
 .hero .stat .num {font-size:3rem; font-weight:700; line-height:1.05;}
 .hero .stat .lbl {font-size:0.95rem; color:#6B6F76;}
-.hero .src {font-size:0.75rem; color:#6B6F76; margin-top:0.9rem;}
 .hero .stat .num.gap {color:#B3122A;}
 .hero .stat .num.target {color:#2F6B5A;}
 [data-testid="stPlotlyChart"] {background:#FFFFFF; border:1px solid #E6E2DC; border-radius:12px; padding:0 0.8rem;}
@@ -166,7 +169,6 @@ st.markdown(
     <div class="stat"><div class="num gap">59%</div><div class="lbl">second-dose vaccination, 2025</div></div>
     <div class="stat"><div class="num target">95%</div><div class="lbl">needed to stop outbreaks (WHO)</div></div>
   </div>
-  <div class="src">Vaccination: WHO/UNICEF estimates for Lebanon. Sources in "About the data" below.</div>
 </div>
 """,
     unsafe_allow_html=True,
@@ -224,7 +226,7 @@ with i1:
             f"**{beqaa_spring / beqaa_total:.0%}** of Beqaa's four-year total came in Feb-Jul 2018: "
             f"**{beqaa_spring / spring_nat:.0%}** of all cases in Lebanon in those months."
         )
-        st.button("Show me →", on_click=apply_preset, args=("spring",), key="btn_spring")
+        st.button("Show me", on_click=apply_preset, args=("spring",), key="btn_spring")
 with i2:
     with st.container(border=True, height=INSIGHT_BOX_HEIGHT, key="card_north_a"):
         card_tag("North Lebanon")
@@ -233,7 +235,7 @@ with i2:
             f"Cases fell to {national['2018-09-01']:.0f} in Sep 2018. Then North Lebanon surged: "
             f"**{north_nd:.0f} cases in Nov-Dec**, **{north_nd / nat_nd:.0%}** of the national total."
         )
-        st.button("Show me →", on_click=apply_preset, args=("north",), key="btn_north")
+        st.button("Show me", on_click=apply_preset, args=("north",), key="btn_north")
 with i3:
     with st.container(border=True, height=INSIGHT_BOX_HEIGHT, key="card_north_b"):
         # 2025 only covers Jan-May, so compare it with Jan-May of the pre-outbreak years
@@ -247,33 +249,35 @@ with i3:
             f"**{jm.loc['North Lebanon', 2025]:.0f}** beats every pre-outbreak year "
             f"({', '.join(f'{v:.0f}' for v in pre.loc['North Lebanon'])})."
         )
-        st.button("Reset view", on_click=apply_preset, args=("full",), key="btn_reset")
+        st.button("Hide chart" if st.session_state.get("show_2025") else "Show me", on_click=toggle_2025_chart,
+                  key="btn_2025")
 
-with st.expander("Insight 3 chart: 2025 vs. pre-outbreak years"):
-    order = pre.max(axis=1).sort_values().index
-    fig_25 = go.Figure()
-    fig_25.add_trace(go.Bar(  # grey bar spanning the 2015-2017 min..max for Jan-May
-        y=order, x=pre.loc[order].max(axis=1) - pre.loc[order].min(axis=1), base=pre.loc[order].min(axis=1),
-        orientation="h", marker=dict(color="#E3E5E8", cornerradius=4), width=0.45,
-        name="Jan-May range, 2015-2017",
-        customdata=pre.loc[order].apply(lambda r: ", ".join("n/a" if pd.isna(v) else f"{v:.0f}" for v in r), axis=1),
-        hovertemplate="%{y}<br>2015, 2016, 2017: %{customdata}<extra></extra>",
-    ))
-    fig_25.add_trace(go.Scatter(
-        y=order, x=jm.loc[order, 2025], mode="markers+text", name="Jan-May 2025",
-        marker=dict(size=14, color=[GOV_COLORS[g] for g in order], line=dict(color="white", width=2)),
-        text=[f"{v:.0f}" for v in jm.loc[order, 2025]], textposition="middle right",
-        hovertemplate="%{y}<br>Jan-May 2025: <b>%{x:.0f}</b> cases<extra></extra>",
-    ))
-    fig_25.update_layout(
-        **BASE_LAYOUT, height=320,
-        title="North Lebanon is the only governorate above its pre-outbreak range in 2025",
-        xaxis=dict(title="Reported cases, Jan-May", gridcolor="#EEEEEE", range=[-1.5, pre.max().max() + 3]),
-        legend=dict(orientation="h", yanchor="bottom", y=1.0, x=1, xanchor="right"),
-    )
-    fig_25.update_traces(cliponaxis=False)
-    st.plotly_chart(fig_25, width="stretch", config=CHART_CONFIG)
-    st.caption("Grey = 2015-2017 range. 2018 left out (off the scale). Small numbers: an early signal, not an outbreak.")
+if st.session_state.get("show_2025"):
+    with st.container(key="chart_2025"):
+        order = pre.max(axis=1).sort_values().index
+        fig_25 = go.Figure()
+        fig_25.add_trace(go.Bar(  # grey bar spanning the 2015-2017 min..max for Jan-May
+            y=order, x=pre.loc[order].max(axis=1) - pre.loc[order].min(axis=1), base=pre.loc[order].min(axis=1),
+            orientation="h", marker=dict(color="#E3E5E8", cornerradius=4), width=0.45,
+            name="Jan-May range, 2015-2017",
+            customdata=pre.loc[order].apply(lambda r: ", ".join("n/a" if pd.isna(v) else f"{v:.0f}" for v in r), axis=1),
+            hovertemplate="%{y}<br>2015, 2016, 2017: %{customdata}<extra></extra>",
+        ))
+        fig_25.add_trace(go.Scatter(
+            y=order, x=jm.loc[order, 2025], mode="markers+text", name="Jan-May 2025",
+            marker=dict(size=14, color=[GOV_COLORS[g] for g in order], line=dict(color="white", width=2)),
+            text=[f"{v:.0f}" for v in jm.loc[order, 2025]], textposition="middle right",
+            hovertemplate="%{y}<br>Jan-May 2025: <b>%{x:.0f}</b> cases<extra></extra>",
+        ))
+        fig_25.update_layout(
+            **BASE_LAYOUT, height=320,
+            title="North Lebanon is the only governorate above its pre-outbreak range in 2025",
+            xaxis=dict(title="Reported cases, Jan-May", gridcolor="#EEEEEE", range=[-1.5, pre.max().max() + 3]),
+            legend=dict(orientation="h", yanchor="bottom", y=1.0, x=0, xanchor="left"),
+        )
+        fig_25.update_traces(cliponaxis=False)
+        st.plotly_chart(fig_25, width="stretch", config=CHART_CONFIG)
+        st.caption("Grey = 2015-2017 range. 2018 left out (off the scale). Small numbers: an early signal, not an outbreak.")
 
 st.divider()
 
@@ -291,6 +295,7 @@ with c1:
         value=PRESETS["full"][0],  # a tuple here is what makes it a two-handle range slider
         key="window",
     )
+    st.button("Reset view", on_click=apply_preset, args=("full",), key="btn_reset")
 start, end = pd.Timestamp(start), pd.Timestamp(end)
 
 win = grid.loc[start:end]
@@ -520,7 +525,8 @@ data and a start after the end) and a year dropdown (too coarse: the northern wa
 
 **Course concept: exploratory vs. explanatory.** The insight cards are the explanatory part: they
 tell the reader what I found. The slider is the exploratory part: the reader can check my claims on
-any window. The "Show me" buttons join the two by setting the slider to the window behind each insight.
+any window. The first two "Show me" buttons join the two by setting the slider to the window behind
+each insight; the third opens the 2025 chart.
         """
     )
 with st.expander("Why a ranked governorate dropdown, and how is it linked?"):
