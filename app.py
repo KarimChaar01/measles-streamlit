@@ -13,6 +13,7 @@ Data: Lebanon Ministry of Public Health (MOPH) surveillance, via the
       AUB Linked Data Cube Portal (https://linked.aub.edu.lb:8502/)
 """
 
+import hashlib
 from pathlib import Path
 
 import pandas as pd
@@ -124,7 +125,8 @@ def apply_preset(name: str) -> None:
     # which is the only point where Streamlit lets you overwrite widget state
     window, focus = PRESETS[name]
     st.session_state["window"] = window
-    st.session_state["focus"] = focus
+    st.session_state["focus_name"] = focus
+    st.session_state["preset_count"] = st.session_state.get("preset_count", 0) + 1  # forces a fresh dropdown
 
 
 def toggle_2025_chart() -> None:
@@ -318,13 +320,23 @@ def focus_label(option: str) -> str:
     return f"{option}: {n:.0f} case{'' if n == 1 else 's'} · {share:.0%}{flag}"
 
 
+# The options are the labels themselves, so the selected item always shows the numbers for the
+# current window. The chosen governorate is remembered separately ("focus_name"): when the window
+# changes, the labels change, Streamlit treats it as a fresh dropdown, and `index` puts the
+# reader's choice back on top of it.
+choices = [ALL] + ranked
+labels = [focus_label(o) for o in choices]
+current = st.session_state.get("focus_name", ALL)
 with c2:
-    focus = st.selectbox(
+    picked = st.selectbox(
         f"Governorate, ranked by cases in {fmt_window(start, end)}",
-        options=[ALL] + ranked,
-        format_func=focus_label,
-        key="focus",
+        options=labels,
+        index=choices.index(current) if current in choices else 0,
+        key="focus_" + hashlib.md5("|".join(labels).encode()).hexdigest()[:10]
+            + f"_{st.session_state.get('preset_count', 0)}",
     )
+focus = choices[labels.index(picked)]
+st.session_state["focus_name"] = focus
 
 # ------------------------------------------------------------------
 # KPI row
